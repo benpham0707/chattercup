@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import Link from 'next/link';
 
@@ -61,7 +61,7 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
     }
     
     fetchListing();
-  }, [params.id]);
+  }, [params]); // Use params as dependency
 
   const handleBooking = async () => {
     if (!currentUser) {
@@ -228,10 +228,10 @@ export default function ListingDetail({ params }: { params: { id: string } }) {
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={handleBooking}
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  onClick={() => router.push(`/bookings/schedule/${listing.id}`)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  Book This Coffee Chat
+                  Schedule Coffee Chat
                 </button>
               </div>
             )}

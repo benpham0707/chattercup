@@ -25,6 +25,8 @@ export default function Marketplace() {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [purchasedListings, setPurchasedListings] = useState<string[]>([]);
+  const [user, setUser] = useState<any>(null);
 
   const fetchListings = async () => {
     try {
@@ -51,8 +53,44 @@ export default function Marketplace() {
     }
   };
 
+  const fetchPurchasedListings = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('listing_id')
+        .eq('guest_id', user.id)
+        .eq('status', 'confirmed');
+        
+      if (error) throw error;
+      
+      const purchasedIds = data?.map(booking => booking.listing_id) || [];
+      setPurchasedListings(purchasedIds);
+      console.log('Purchased listings:', purchasedIds);
+    } catch (error: any) {
+      console.error('Error fetching purchased listings:', error);
+    }
+  };
+
   useEffect(() => {
-    fetchListings();
+    async function fetchUserAndData() {
+      try {
+        // Get current user
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user || null);
+        
+        await fetchListings();
+        
+        if (session?.user) {
+          await fetchPurchasedListings();
+        }
+      } catch (error) {
+        console.error('Error in initial data fetch:', error);
+      }
+    }
+    
+    fetchUserAndData();
     
     // Set a timeout to prevent infinite loading
     const timeoutId = setTimeout(() => {
@@ -149,13 +187,25 @@ export default function Marketplace() {
                       </span>
                     </div>
                     
-                    <div className="mt-5">
+                    <div className="mt-5 space-y-2">
                       <Link 
                         href={`/listings/${listing.id}`}
                         className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                       >
                         View Details
                       </Link>
+                      
+                      {purchasedListings.includes(listing.id) && (
+                        <Link 
+                          href={`/bookings/schedule/${listing.id}`}
+                          className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                          </svg>
+                          Schedule Call
+                        </Link>
+                      )}
                     </div>
                   </div>
                 </div>
