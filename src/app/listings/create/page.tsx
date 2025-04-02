@@ -97,7 +97,20 @@ export default function CreateListing() {
       console.log('Sending to Supabase:', JSON.stringify(listingData, null, 2));
       
       try {
-        // Use a simpler insert without select
+        // First, check if we can access the profiles table to verify connection
+        const { data: profileTest, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .limit(1);
+          
+        if (profileError) {
+          console.error('Profile test error:', profileError);
+          throw new Error('Database connection error: ' + profileError.message);
+        }
+        
+        console.log('Connection to database successful, profiles table exists');
+        
+        // Now try to insert into listings table
         const { error: insertError } = await supabase
           .from('listings')
           .insert(listingData);
@@ -105,12 +118,10 @@ export default function CreateListing() {
         if (insertError) {
           console.error('Insert error:', insertError);
           
-          // Check if the error is about the table not existing
           if (insertError.message && insertError.message.includes('relation "public.listings" does not exist')) {
             throw new Error(
-              'The listings table does not exist in your database yet. ' +
-              'You need to apply the migration from supabase/migrations/20240401_create_listings_table.sql. ' +
-              'Run "npx supabase migration up" or apply the migration through the Supabase dashboard.'
+              'The listings table does not exist in your database. Please create it by running the SQL in ' +
+              'supabase/migrations/20240401_create_listings_table.sql through the Supabase SQL Editor.'
             );
           }
           
@@ -118,8 +129,6 @@ export default function CreateListing() {
         }
         
         console.log('Listing created successfully');
-        
-        // Redirect to dashboard
         router.push('/dashboard');
       } catch (insertErr: any) {
         console.error('Insert operation error:', insertErr);
